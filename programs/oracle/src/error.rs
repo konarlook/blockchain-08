@@ -1,9 +1,13 @@
 use anchor_lang::prelude::*;
 
 #[error_code]
-pub enum ErrorCode {
-    #[msg("Only the counter authority can update this counter")]
+pub enum OracleError {
+    #[msg("Signer is not oracle admin")]
     Unauthorized,
-    #[msg("Counter has reached the maximum value")]
-    CounterOverflow,
+    #[msg("Price must be grater than zero")]
+    InvalidPrice,
+    #[msg("New price deviates more than 20% from previous one")]
+    PriceOutOfRange,
+    #[msg("Oracle price is stale")]
+    StaleOracle,
 }

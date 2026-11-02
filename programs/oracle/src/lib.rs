@@ -1,5 +1,6 @@
 pub mod constants;
 pub mod error;
+pub mod events;
 pub mod instructions;
 pub mod state;
 
@@ -16,10 +17,10 @@ pub mod oracle {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        crate::instructions::initialize::handle_initialize(ctx)
+        handle_initialize(ctx)
     }
 
-    pub fn increment(ctx: Context<Increment>) -> Result<()> {
-        crate::instructions::increment::handle_increment(ctx)
+    pub fn update_price(ctx: Context<UpdatePrice>, new_price: u64) -> Result<()> {
+        handle_update_price(ctx, new_price)
     }
 }

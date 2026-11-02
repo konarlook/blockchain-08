@@ -1,10 +1,14 @@
 use anchor_lang::prelude::*;
 
 #[constant]
-pub const COUNTER_SEED: &[u8] = b"counter";
+pub const ORACLE_SEED: &[u8] = b"oracle";
 
 #[constant]
-pub const HELLO_WORLD_LAMPORTS: u64 = 1;
+pub const PRICE_DECIMALS: u8 = 6;
 
 #[constant]
-pub const MAX_COUNT: u64 = 10;
+pub const MAX_STALENESS_SLOTS: u64 = 100;
+
+pub const MAX_PRICE_CHANGE_NUM: u64 = 12;
+pub const MIN_PRICE_CHANGE_NUM: u64 = 8;
+pub const PRICE_CHANGE_DEN: u64 = 10;

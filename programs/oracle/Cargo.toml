@@ -30,6 +30,7 @@ solana-message = "4"
 solana-transaction = "4"
 solana-signer = "3"
 solana-keypair = "3"
+solana-transaction-error = "3"
 
 
 [lints.rust]
