@@ -33,6 +33,9 @@ pub fn handle_update_price(ctx: Context<UpdatePrice>, new_price: u64) -> Result<
     let oracle = &mut ctx.accounts.oracle;
     check_price_jump(oracle.price, new_price)?;
 
+    oracle.price = new_price;
+    oracle.last_updated_slot = Clock::get()?.slot;
+
     emit!(PriceUpdated {
         price: oracle.price,
         slot: oracle.last_updated_slot,
