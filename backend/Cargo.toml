@@ -1,0 +1,20 @@
+[package]
+name = "backend"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.89.0"
+
+[workspace]
+resolver = "3"
+
+[dependencies]
+anchor-client = "1.2.2"
+anchor-spl = "1.2.2"
+oracle = { path = "../programs/oracle", features = ["cpi"] }
+minter = { path = "../programs/minter", features = ["cpi"] }
+anyhow = "1"
+dotenvy = "0.15"
+rand = "0.9"
+solana-compute-budget-interface = "3"
+solana-keypair = "3"
+solana-signature = "3"
