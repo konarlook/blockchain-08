@@ -10,6 +10,10 @@ skip-lint = false
 minter = "7Rku9YJHdjyo2PCcHyp8T9jEUrgDZFMxe9djLhync6t"
 oracle = "2kNW9ZJUzCyCZeZi1y6nffir39u2QXh845jf3Nc6gt5X"
 
+[programs.devnet]
+minter = "7Rku9YJHdjyo2PCcHyp8T9jEUrgDZFMxe9djLhync6t"
+oracle = "2kNW9ZJUzCyCZeZi1y6nffir39u2QXh845jf3Nc6gt5X"
+
 [provider]
 cluster = "localnet"
 wallet = "~/.config/solana/id.json"

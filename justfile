@@ -1,8 +1,8 @@
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
 localnet_rpc := "http://127.0.0.1:8899"
-devnet_rpc := "http://api.devnet.solana.com"
-treasury_keypair := "keys/trasury.json"
+devnet_rpc := "https://api.devnet.solana.com"
+treasury_keypair := "keys/treasury.json"
 
 default:
     @just --list
