@@ -42,8 +42,6 @@ SPL Token (`InitializeMint2`, `MintTo`), Associated Token Program (создан�
 - Инициализация фабрики (комиссия 1
   USD): [44fUtnEY…](https://explorer.solana.com/tx/44fUtnEYtRxxCLPXtHTwMdxyfFNNwbC5GfMHD4MGuxG824ujwWPDxohmp4f8XRqBD32J3CryCwGiE1iuB9X2Zdmt?cluster=devnet)
 - Обновление цены feeder'ом: [2kuwWZNn…](https://explorer.solana.com/tx/2kuwWZNntgDcyF8waAyVmTFLwPiZ6q2aT5ipe6ygs2SmGFUUaGYCdA3xDrSyfB22WC83FAgWH6Xm4nyHmorc4sQ1?cluster=devnet)
-- Обновление программ до текущей версии: oracle [2P96BG3S…](https://explorer.solana.com/tx/2P96BG3SieT1UvXNvyXeHhX3xN7fWnsUpJjJxeVVdJMXSSvWk9SZmiFRdoV3VUBhYkMohT95a6YVSbUjWnn95uk2?cluster=devnet),
-  minter [64TwDAbc…](https://explorer.solana.com/tx/64TwDAbcxDjqNpvbStw4sWjTmZ19ftygpJKEXZ3smB7NeqNxVu1LAtTv8U2W3Vztvm6KAUuUqToTXj8kan8gKXnx?cluster=devnet)
 
 ## Архитектура
 
