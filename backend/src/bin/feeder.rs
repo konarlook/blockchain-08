@@ -11,7 +11,7 @@ use backend::{
     explorer, oracle_client,
     price_source::{MockPriceSource, PriceSource},
     publish_policy::{Decision, PublishPolicy},
-    retry::with_retries,
+    retry::send_with_retries,
 };
 
 const DEFAULT_INITIAL_PRICE: u64 = 150_000_000;
@@ -73,14 +73,13 @@ impl Feeder {
     }
 
     fn publish(&self, price: u64) -> Result<()> {
-        let signature = with_retries("update_price", || {
-            oracle_client::update_price(
-                &self.chain.oracle,
-                self.oracle_state,
-                price,
-                self.priority_fee,
-            )
-        })?;
+        let tx = oracle_client::update_price_tx(
+            &self.chain.oracle,
+            self.oracle_state,
+            price,
+            self.priority_fee,
+        )?;
+        let signature = send_with_retries("update_price", &self.chain.oracle, &tx)?;
         let state = oracle_client::read_state(&self.chain.oracle, self.oracle_state)?;
         let slot = state.map_or(0, |oracle| oracle.last_updated_slot);
         println!(

@@ -1,12 +1,11 @@
 use anchor_client::{
     anchor_lang::{prelude::Pubkey, solana_program::system_program},
-    ClientError, Program,
+    ClientError, Program, Transaction,
 };
 use oracle::OracleState;
 use solana_compute_budget_interface::ComputeBudgetInstruction;
-use solana_signature::Signature;
 
-use crate::connection::Payer;
+use crate::{connection::Payer, program_data::program_data_address};
 
 pub fn state_address(program_id: &Pubkey) -> Pubkey {
     Pubkey::find_program_address(&[oracle::ORACLE_SEED], program_id).0
@@ -23,24 +22,25 @@ pub fn read_state(
     }
 }
 
-pub fn initialize(program: &Program<Payer>, state: Pubkey) -> Result<Signature, ClientError> {
+pub fn initialize_tx(program: &Program<Payer>, state: Pubkey) -> Result<Transaction, ClientError> {
     program
         .request()
         .accounts(oracle::accounts::Initialize {
             oracle: state,
             admin: program.payer(),
+            program_data: program_data_address(&program.id()),
             system_program: system_program::ID,
         })
         .args(oracle::instruction::Initialize {})
-        .send()
+        .signed_transaction()
 }
 
-pub fn update_price(
+pub fn update_price_tx(
     program: &Program<Payer>,
     state: Pubkey,
     new_price: u64,
     priority_fee_micro_lamports: u64,
-) -> Result<Signature, ClientError> {
+) -> Result<Transaction, ClientError> {
     let mut request = program.request();
     if priority_fee_micro_lamports > 0 {
         request = request.instruction(ComputeBudgetInstruction::set_compute_unit_price(
@@ -53,5 +53,5 @@ pub fn update_price(
             admin: program.payer(),
         })
         .args(oracle::instruction::UpdatePrice { new_price })
-        .send()
+        .signed_transaction()
 }

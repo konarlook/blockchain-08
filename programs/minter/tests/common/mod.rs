@@ -1,6 +1,7 @@
 use anchor_lang::{
     prelude::Pubkey,
     solana_program::{
+        bpf_loader_upgradeable,
         instruction::{error::InstructionError, Instruction},
         system_program,
     },
@@ -43,6 +44,8 @@ pub fn setup() -> TestEnv {
     for who in [&admin, &treasury, &user] {
         svm.airdrop(&who.pubkey(), 10 * ONE_SOL).unwrap();
     }
+    set_upgrade_authority(&mut svm, &oracle::id(), &admin.pubkey());
+    set_upgrade_authority(&mut svm, &minter::id(), &admin.pubkey());
 
     let (oracle_pda, _) = Pubkey::find_program_address(&[oracle::ORACLE_SEED], &oracle::id());
     let (config_pda, _) = Pubkey::find_program_address(&[minter::CONFIG_SEED], &minter::id());
@@ -84,6 +87,7 @@ impl TestEnv {
             oracle::accounts::Initialize {
                 oracle: self.oracle_pda,
                 admin: admin.pubkey(),
+                program_data: program_data_address(&oracle::id()),
                 system_program: system_program::ID,
             }
             .to_account_metas(None),
@@ -106,18 +110,50 @@ impl TestEnv {
 
     pub fn init_minter(&mut self, fee_usd: u64) {
         let admin = self.admin.insecure_clone();
+        self.init_minter_by(&admin, fee_usd).unwrap();
+    }
+
+    pub fn init_minter_by(&mut self, signer: &Keypair, fee_usd: u64) -> TransactionResult {
         let ix = Instruction::new_with_bytes(
             minter::id(),
             &minter::instruction::Initialize { fee_usd }.data(),
             minter::accounts::Initialize {
                 config: self.config_pda,
-                admin: admin.pubkey(),
+                admin: signer.pubkey(),
                 treasury: self.treasury.pubkey(),
+                program_data: program_data_address(&minter::id()),
                 system_program: system_program::ID,
             }
             .to_account_metas(None),
         );
-        self.send(ix, &admin, &[]).unwrap();
+        self.send(ix, signer, &[])
+    }
+
+    pub fn update_config(
+        &mut self,
+        signer: &Keypair,
+        fee_usd: u64,
+        treasury: Pubkey,
+    ) -> TransactionResult {
+        let ix = Instruction::new_with_bytes(
+            minter::id(),
+            &minter::instruction::UpdateConfig { fee_usd }.data(),
+            minter::accounts::UpdateConfig {
+                config: self.config_pda,
+                admin: signer.pubkey(),
+                treasury,
+            }
+            .to_account_metas(None),
+        );
+        self.send(ix, signer, &[])
+    }
+
+    pub fn read_config(&self) -> minter::MinterConfig {
+        let account = self
+            .svm
+            .get_account(&self.config_pda)
+            .expect("config must exist");
+        minter::MinterConfig::try_deserialize(&mut account.data.as_slice()).unwrap()
     }
 
     pub fn create_token_with(
@@ -191,6 +227,19 @@ impl TestEnv {
             .unwrap()
             .last_updated_slot
     }
+}
+
+pub fn program_data_address(program_id: &Pubkey) -> Pubkey {
+    Pubkey::find_program_address(&[program_id.as_ref()], &bpf_loader_upgradeable::ID).0
+}
+
+pub fn set_upgrade_authority(svm: &mut LiteSVM, program_id: &Pubkey, authority: &Pubkey) {
+    const OPTION_TAG: usize = 4 + 8;
+    let address = program_data_address(program_id);
+    let mut account = svm.get_account(&address).expect("program data must exist");
+    account.data[OPTION_TAG] = 1;
+    account.data[OPTION_TAG + 1..OPTION_TAG + 33].copy_from_slice(authority.as_ref());
+    svm.set_account(address, account).unwrap();
 }
 
 pub fn find_event<E: Event>(logs: &[String]) -> Option<E> {

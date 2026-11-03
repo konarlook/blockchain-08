@@ -10,3 +10,9 @@ pub struct TokenCreated {
     pub oracle_price: u64,
     pub oracle_slot: u64,
 }
+
+#[event]
+pub struct ConfigUpdated {
+    pub fee_usd: u64,
+    pub treasury: Pubkey,
+}

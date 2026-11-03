@@ -14,4 +14,6 @@ pub enum MinterError {
     InvalidTokenDecimals,
     #[msg("Initial supply must be greater than zero")]
     InvalidSupply,
+    #[msg("Signer is not authorized: minter admin or upgrade authority required")]
+    Unauthorized,
 }

@@ -1,6 +1,7 @@
 use anchor_lang::{
     prelude::Pubkey,
     solana_program::{
+        bpf_loader_upgradeable,
         instruction::{error::InstructionError, Instruction},
         system_program,
     },
@@ -29,6 +30,7 @@ pub fn setup() -> TestEnv {
 
     let admin = Keypair::new();
     svm.airdrop(&admin.pubkey(), 10 * ONE_SOL).unwrap();
+    set_upgrade_authority(&mut svm, &oracle::id(), &admin.pubkey());
     let (oracle_pda, _bump) = Pubkey::find_program_address(&[ORACLE_SEED], &oracle::id());
 
     TestEnv {
@@ -56,18 +58,23 @@ impl TestEnv {
     }
 
     pub fn initialize(&mut self) -> TransactionResult {
+        let admin = self.admin.insecure_clone();
+        self.initialize_by(&admin)
+    }
+
+    pub fn initialize_by(&mut self, signer: &Keypair) -> TransactionResult {
         let ix = Instruction::new_with_bytes(
             oracle::id(),
             &oracle::instruction::Initialize {}.data(),
             oracle::accounts::Initialize {
                 oracle: self.oracle_pda,
-                admin: self.admin.pubkey(),
+                admin: signer.pubkey(),
+                program_data: program_data_address(&oracle::id()),
                 system_program: system_program::ID,
             }
             .to_account_metas(None),
         );
-        let admin = self.admin.insecure_clone();
-        self.send(ix, &admin, &[])
+        self.send(ix, signer, &[])
     }
 
     pub fn update_price(&mut self, signer: &Keypair, new_price: u64) -> TransactionResult {
@@ -97,8 +104,21 @@ impl TestEnv {
             .get_sysvar::<anchor_lang::solana_program::clock::Clock>()
             .slot
     }
-
 }
+
+pub fn program_data_address(program_id: &Pubkey) -> Pubkey {
+    Pubkey::find_program_address(&[program_id.as_ref()], &bpf_loader_upgradeable::ID).0
+}
+
+pub fn set_upgrade_authority(svm: &mut LiteSVM, program_id: &Pubkey, authority: &Pubkey) {
+    const OPTION_TAG: usize = 4 + 8;
+    let address = program_data_address(program_id);
+    let mut account = svm.get_account(&address).expect("program data must exist");
+    account.data[OPTION_TAG] = 1;
+    account.data[OPTION_TAG + 1..OPTION_TAG + 33].copy_from_slice(authority.as_ref());
+    svm.set_account(address, account).unwrap();
+}
+
 pub fn assert_custom_error(res: TransactionResult, expected: u32) {
     let failed = res.expect_err("transaction was expected to fail");
     match failed.err {

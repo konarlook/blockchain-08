@@ -1,6 +1,6 @@
-use anchor_lang::prelude::*;
+use anchor_lang::{prelude::*, solana_program::bpf_loader_upgradeable};
 
-use crate::{constants::CONFIG_SEED, state::MinterConfig};
+use crate::{constants::CONFIG_SEED, error::MinterError, state::MinterConfig};
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
@@ -15,6 +15,14 @@ pub struct Initialize<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
     pub treasury: SystemAccount<'info>,
+    #[account(
+        seeds = [crate::ID.as_ref()],
+        bump,
+        seeds::program = bpf_loader_upgradeable::ID,
+        constraint = program_data.upgrade_authority_address == Some(admin.key())
+            @ MinterError::Unauthorized
+    )]
+    pub program_data: Account<'info, ProgramData>,
     pub system_program: Program<'info, System>,
 }
 

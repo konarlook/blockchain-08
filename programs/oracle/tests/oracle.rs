@@ -1,7 +1,10 @@
 mod common;
 
 use common::{assert_custom_error, setup};
-use oracle::{constants::PRICE_DECIMALS, error::OracleError};
+use oracle::{
+    constants::{MAX_STALENESS_SLOTS, PRICE_DECIMALS},
+    error::OracleError,
+};
 use solana_keypair::Keypair;
 use solana_signer::Signer;
 
@@ -32,6 +35,20 @@ fn initialize_twice_fails() {
         res.is_err(),
         "second initialize must fail: PDA already exists"
     );
+}
+
+#[test]
+fn initialize_by_non_upgrade_authority_fails() {
+    let mut env = setup();
+    let attacker = Keypair::new();
+    env.svm
+        .airdrop(&attacker.pubkey(), common::ONE_SOL)
+        .unwrap();
+
+    let res = env.initialize_by(&attacker);
+
+    assert_custom_error(res, OracleError::Unauthorized.into());
+    assert!(env.svm.get_account(&env.oracle_pda).is_none());
 }
 
 #[test]
@@ -93,6 +110,22 @@ fn update_price_jump_over_20_percent_fails() {
 }
 
 #[test]
+fn update_price_after_staleness_skips_jump_filter() {
+    let mut env = setup();
+    env.initialize().unwrap();
+    let admin = env.admin.insecure_clone();
+    env.update_price(&admin, 100 * ONE_USD).unwrap();
+    let stale_slot = env.read_oracle().last_updated_slot + MAX_STALENESS_SLOTS + 1;
+    env.svm.warp_to_slot(stale_slot);
+
+    env.update_price(&admin, 200 * ONE_USD).unwrap();
+
+    let state = env.read_oracle();
+    assert_eq!(state.price, 200 * ONE_USD);
+    assert_eq!(state.last_updated_slot, stale_slot);
+}
+
+#[test]
 fn require_fresh_distinguishes_fresh_and_stale() {
     let mut env = setup();
     env.initialize().unwrap();
@@ -101,10 +134,6 @@ fn require_fresh_distinguishes_fresh_and_stale() {
     env.update_price(&admin, 25 * ONE_USD).unwrap();
 
     let state = env.read_oracle();
-    assert!(state
-        .require_fresh(100 + oracle::constants::MAX_STALENESS_SLOTS)
-        .is_ok());
-    assert!(state
-        .require_fresh(100 + oracle::constants::MAX_STALENESS_SLOTS + 1)
-        .is_err());
+    assert!(state.require_fresh(100 + MAX_STALENESS_SLOTS).is_ok());
+    assert!(state.require_fresh(100 + MAX_STALENESS_SLOTS + 1).is_err());
 }

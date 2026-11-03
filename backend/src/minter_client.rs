@@ -1,13 +1,12 @@
 use anchor_client::{
     anchor_lang::{prelude::Pubkey, solana_program::system_program},
-    ClientError, Program, Signer,
+    ClientError, Program, Signer, Transaction,
 };
 use anchor_spl::{associated_token, token};
 use minter::MinterConfig;
 use solana_keypair::Keypair;
-use solana_signature::Signature;
 
-use crate::connection::Payer;
+use crate::{connection::Payer, program_data::program_data_address};
 
 pub fn config_address(program_id: &Pubkey) -> Pubkey {
     Pubkey::find_program_address(&[minter::CONFIG_SEED], program_id).0
@@ -28,22 +27,23 @@ pub fn read_config(
     }
 }
 
-pub fn initialize(
+pub fn initialize_tx(
     program: &Program<Payer>,
     config: Pubkey,
     treasury: Pubkey,
     fee_usd: u64,
-) -> Result<Signature, ClientError> {
+) -> Result<Transaction, ClientError> {
     program
         .request()
         .accounts(minter::accounts::Initialize {
             config,
             admin: program.payer(),
             treasury,
+            program_data: program_data_address(&program.id()),
             system_program: system_program::ID,
         })
         .args(minter::instruction::Initialize { fee_usd })
-        .send()
+        .signed_transaction()
 }
 
 pub struct CreateTokenAccounts {
@@ -61,7 +61,7 @@ pub fn create_token_accounts(program: &Program<Payer>, mint: &Keypair) -> Create
     }
 }
 
-pub fn create_token(
+pub fn create_token_tx(
     program: &Program<Payer>,
     config: Pubkey,
     oracle_state: Pubkey,
@@ -69,7 +69,7 @@ pub fn create_token(
     mint: &Keypair,
     decimals: u8,
     initial_supply: u64,
-) -> Result<Signature, ClientError> {
+) -> Result<Transaction, ClientError> {
     let accounts = create_token_accounts(program, mint);
     program
         .request()
@@ -90,5 +90,5 @@ pub fn create_token(
             initial_supply,
         })
         .signer(mint)
-        .send()
+        .signed_transaction()
 }

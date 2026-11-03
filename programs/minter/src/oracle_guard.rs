@@ -1,11 +1,11 @@
 use anchor_lang::prelude::*;
-use oracle::state::OracleState;
+use oracle::{constants::PRICE_DECIMALS, state::OracleState};
 
-use crate::{constants::EXPECTED_ORACLE_DECIMALS, error::MinterError};
+use crate::error::MinterError;
 
 pub fn validate_oracle(oracle: &OracleState, current_slot: u64) -> Result<()> {
     require!(
-        oracle.decimals == EXPECTED_ORACLE_DECIMALS,
+        oracle.decimals == PRICE_DECIMALS,
         MinterError::InvalidOracleDecimals,
     );
 

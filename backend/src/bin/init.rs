@@ -6,7 +6,7 @@ use backend::{
     config::{env_parse_or, Settings},
     connection::{connect, load_keypair, Chain},
     explorer, minter_client, oracle_client,
-    retry::with_retries,
+    retry::send_with_retries,
 };
 
 const DEFAULT_INITIAL_PRICE: u64 = 150_000_000; // 150 USD
@@ -37,30 +37,46 @@ fn init_oracle(chain: &Chain, settings: &Settings, initial_price: u64) -> Result
     let existing = oracle_client::read_state(&chain.oracle, state)?;
 
     if existing.is_none() {
-        let sig = with_retries("oracle initialize", || oracle_client::initialize(&chain.oracle, state))?;
-        println!("oracle: initialized          {}", explorer::tx_url(sig, &settings.rpc_url));
+        let tx = oracle_client::initialize_tx(&chain.oracle, state)?;
+        let sig = send_with_retries("oracle initialize", &chain.oracle, &tx)?;
+        println!(
+            "oracle: initialized          {}",
+            explorer::tx_url(sig, &settings.rpc_url)
+        );
     }
     if existing.is_none_or(|oracle| oracle.price == 0) {
-        let sig = with_retries("oracle first price", || {
-            oracle_client::update_price(&chain.oracle, state, initial_price, 0)
-        })?;
-        println!("oracle: first price {initial_price}  {}", explorer::tx_url(sig, &settings.rpc_url));
+        let tx = oracle_client::update_price_tx(&chain.oracle, state, initial_price, 0)?;
+        let sig = send_with_retries("oracle first price", &chain.oracle, &tx)?;
+        println!(
+            "oracle: first price {initial_price}  {}",
+            explorer::tx_url(sig, &settings.rpc_url)
+        );
     } else {
         println!("oracle: already initialized at {state}");
     }
     Ok(state)
 }
 
-fn init_minter(chain: &Chain, settings: &Settings, treasury: Pubkey, fee_usd: u64) -> Result<Pubkey> {
+fn init_minter(
+    chain: &Chain,
+    settings: &Settings,
+    treasury: Pubkey,
+    fee_usd: u64,
+) -> Result<Pubkey> {
     let config = minter_client::config_address(&settings.minter_program_id);
 
     if let Some(existing) = minter_client::read_config(&chain.minter, config)? {
-        println!("minter: already initialized at {config}, treasury {}", existing.treasury);
+        println!(
+            "minter: already initialized at {config}, treasury {}",
+            existing.treasury
+        );
         return Ok(config);
     }
-    let sig = with_retries("minter initialize", || {
-        minter_client::initialize(&chain.minter, config, treasury, fee_usd)
-    })?;
-    println!("minter: initialized          {}", explorer::tx_url(sig, &settings.rpc_url));
+    let tx = minter_client::initialize_tx(&chain.minter, config, treasury, fee_usd)?;
+    let sig = send_with_retries("minter initialize", &chain.minter, &tx)?;
+    println!(
+        "minter: initialized          {}",
+        explorer::tx_url(sig, &settings.rpc_url)
+    );
     Ok(config)
 }

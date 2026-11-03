@@ -17,11 +17,16 @@ impl OracleState {
         current_slot.saturating_sub(self.last_updated_slot)
     }
 
+    pub fn is_fresh(&self, current_slot: u64) -> bool {
+        self.age_in_slots(current_slot) <= MAX_STALENESS_SLOTS
+    }
+
     pub fn require_fresh(&self, current_slot: u64) -> Result<()> {
-        require!(
-            self.age_in_slots(current_slot) <= MAX_STALENESS_SLOTS,
-            OracleError::StaleOracle
-        );
+        require!(self.is_fresh(current_slot), OracleError::StaleOracle);
         Ok(())
+    }
+
+    pub fn has_reference_price(&self, current_slot: u64) -> bool {
+        self.price > 0 && self.is_fresh(current_slot)
     }
 }

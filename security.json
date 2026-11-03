@@ -1,28 +1,14 @@
 {
-  "name": "oracle",
-  "logo": "https://solana.com/src/img/branding/solanaLogoMark.png",
-  "description": "A fresh Anchor program!",
-  "notification": "Remember to review and publish this metadata with `anchor program deploy --security-metadata` once the contents are accurate.",
-  "sdk": "https://github.com/your-sdk",
-  "project_url": "https://github.com/your-project/",
+  "name": "Mini-Launchpad",
+  "description": "Jракул SOL/USD и фабрика SPL-токенов с комиссией в USD. Развёрнут только в Devnet.",
+  "project_url": "https://github.com/konarlook/blockchain-08",
+  "source_code": "https://github.com/konarlook/blockchain-08",
   "contacts": [
-    "email:security@example.com",
-    "discord:MyProgram#1234",
-    "twitter:@MyProgram"
+    "link:https://github.com/konarlook/blockchain-08/issues"
   ],
-  "policy": "https://example.com/security-policy",
+  "policy": "https://github.com/konarlook/blockchain-08/blob/master/README.md#безопасность",
   "preferred_languages": [
-    "en",
-    "de"
-  ],
-  "encryption": "https://example.com/pgp-key",
-  "source_code": "https://github.com/your-source-code/",
-  "source_release": "v0.1.0",
-  "source_revision": "abc123def456",
-  "auditors": [
-    "Audit Firm A",
-    "Security Researcher B"
-  ],
-  "acknowledgements": "https://example.com/security-acknowledgements",
-  "version": "0.1.0"
+    "ru",
+    "en"
+  ]
 }

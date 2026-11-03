@@ -5,7 +5,10 @@ use anchor_lang::{
 };
 use anchor_spl::associated_token::get_associated_token_address;
 use common::{assert_custom_error, find_event, setup, ONE_SOL, ONE_USD};
-use minter::{error::MinterError, events::TokenCreated};
+use minter::{
+    error::MinterError,
+    events::{ConfigUpdated, TokenCreated},
+};
 use oracle::{constants::MAX_STALENESS_SLOTS, error::OracleError, OracleState};
 use solana_account::Account;
 use solana_keypair::Keypair;
@@ -155,6 +158,59 @@ fn create_token_with_zero_supply_fails() {
     let res = env.create_token(&Keypair::new(), DECIMALS, 0);
 
     assert_custom_error(res, MinterError::InvalidSupply.into());
+}
+
+#[test]
+fn initialize_by_non_upgrade_authority_fails() {
+    let mut env = setup();
+    let attacker = env.user.insecure_clone();
+
+    let res = env.init_minter_by(&attacker, FEE_USD);
+
+    assert_custom_error(res, MinterError::Unauthorized.into());
+    assert!(env.svm.get_account(&env.config_pda).is_none());
+}
+
+#[test]
+fn update_config_by_admin_changes_fee_and_treasury() {
+    let mut env = setup();
+    env.init_oracle_with_price(PRICE);
+    env.init_minter(FEE_USD);
+    let admin = env.admin.insecure_clone();
+    let new_treasury = Keypair::new();
+    env.svm.airdrop(&new_treasury.pubkey(), ONE_SOL).unwrap();
+
+    let meta = env
+        .update_config(&admin, 2 * FEE_USD, new_treasury.pubkey())
+        .unwrap();
+
+    let config = env.read_config();
+    assert_eq!(config.fee_usd, 2 * FEE_USD);
+    assert_eq!(config.treasury, new_treasury.pubkey());
+    let event: ConfigUpdated = find_event(&meta.logs).expect("ConfigUpdated must be emitted");
+    assert_eq!(event.fee_usd, 2 * FEE_USD);
+
+    let before = env.balance(&new_treasury.pubkey());
+    let (oracle, treasury) = (env.oracle_pda, new_treasury.pubkey());
+    env.create_token_with(&Keypair::new(), DECIMALS, SUPPLY, oracle, treasury)
+        .unwrap();
+    assert_eq!(
+        env.balance(&new_treasury.pubkey()) - before,
+        2 * EXPECTED_FEE_LAMPORTS
+    );
+}
+
+#[test]
+fn update_config_by_non_admin_fails() {
+    let mut env = setup();
+    env.init_oracle_with_price(PRICE);
+    env.init_minter(FEE_USD);
+    let attacker = env.user.insecure_clone();
+
+    let res = env.update_config(&attacker, 0, attacker.pubkey());
+
+    assert_custom_error(res, MinterError::Unauthorized.into());
+    assert_eq!(env.read_config().fee_usd, FEE_USD);
 }
 
 fn serialize_oracle(state: &OracleState) -> Vec<u8> {

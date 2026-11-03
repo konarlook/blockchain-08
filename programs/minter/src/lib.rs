@@ -30,4 +30,8 @@ pub mod minter {
     ) -> Result<()> {
         handle_create_token(ctx, decimals, initial_supply)
     }
+
+    pub fn update_config(ctx: Context<UpdateConfig>, fee_usd: u64) -> Result<()> {
+        handle_update_config(ctx, fee_usd)
+    }
 }

@@ -5,7 +5,7 @@ use backend::{
     config::Settings,
     connection::{connect, load_keypair},
     explorer, minter_client, oracle_client,
-    retry::with_retries,
+    retry::send_with_retries,
 };
 use solana_keypair::Keypair;
 
@@ -21,17 +21,16 @@ fn main() -> Result<()> {
 
     let mint = Keypair::new();
     let accounts = minter_client::create_token_accounts(&chain.minter, &mint);
-    let signature = with_retries("create_token", || {
-        minter_client::create_token(
-            &chain.minter,
-            config_address,
-            oracle_state,
-            config.treasury,
-            &mint,
-            decimals,
-            initial_supply,
-        )
-    })?;
+    let tx = minter_client::create_token_tx(
+        &chain.minter,
+        config_address,
+        oracle_state,
+        config.treasury,
+        &mint,
+        decimals,
+        initial_supply,
+    )?;
+    let signature = send_with_retries("create_token", &chain.minter, &tx)?;
 
     println!(
         "transaction: {}",

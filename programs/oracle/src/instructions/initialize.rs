@@ -1,6 +1,6 @@
-use anchor_lang::prelude::*;
+use anchor_lang::{prelude::*, solana_program::bpf_loader_upgradeable};
 
-use crate::{constants::*, state::OracleState};
+use crate::{constants::*, error::OracleError, state::OracleState};
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
@@ -14,6 +14,14 @@ pub struct Initialize<'info> {
     pub oracle: Account<'info, OracleState>,
     #[account(mut)]
     pub admin: Signer<'info>,
+    #[account(
+        seeds = [crate::ID.as_ref()],
+        bump,
+        seeds::program = bpf_loader_upgradeable::ID,
+        constraint = program_data.upgrade_authority_address == Some(admin.key())
+            @ OracleError::Unauthorized
+    )]
+    pub program_data: Account<'info, ProgramData>,
     pub system_program: Program<'info, System>,
 }
 
